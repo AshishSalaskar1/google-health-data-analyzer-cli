@@ -1,0 +1,29 @@
+# Dependencies and build output
+node_modules/
+dist/
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+
+# Logs and local test artifacts
+*.log
+.playwright-cli/
+playwright-report/
+test-results/
+*.html.report
+
+# Private health data and local databases
+data/*.db
+data/*.db-*
+data/*.sqlite
+data/*.sqlite3
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Editor and OS metadata
+.DS_Store
+.idea/
+.vscode/
