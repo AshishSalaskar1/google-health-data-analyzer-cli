@@ -27,3 +27,9 @@ data/*.sqlite3
 .DS_Store
 .idea/
 .vscode/
+
+# agent files
+.agents/
+.impeccable/
+plans/
+knowledge/

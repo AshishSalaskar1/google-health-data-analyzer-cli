@@ -1,4 +1,5 @@
 export type Units = "metric" | "imperial";
+export type Theme = "light" | "dark";
 
 export interface SourceInfo {
   id: number;
@@ -21,15 +22,74 @@ export interface DailyActivity {
   energyJoules: number;
 }
 
-export interface ExerciseSession {
+export interface HeartRateSummary {
+  minimum: number | null;
+  average: number | null;
+  maximum: number | null;
+}
+
+export interface ExerciseSession extends HeartRateSummary {
   id: number;
   start: number;
   end: number;
+  localStart: number;
+  localEnd: number;
   durationMinutes: number;
   type: number;
   typeName: string;
   title: string;
+  notes: string;
   source: string;
+  recordingMethod: number;
+  perceivedExertion: number | null;
+  hasRoute: boolean;
+  lapCount: number;
+  segmentCount: number;
+  routePointCount: number;
+  estimatedSteps: number;
+  estimatedDistanceMeters: number;
+  estimatedEnergyJoules: number;
+  heartRate: DataPoint[];
+}
+
+export interface SleepStage {
+  start: number;
+  end: number;
+  localStart: number;
+  localEnd: number;
+  type: number;
+  name: string;
+  durationMinutes: number;
+}
+
+export interface SleepStageTotal {
+  type: number;
+  name: string;
+  minutes: number;
+  percentage: number;
+}
+
+export interface SleepSession extends HeartRateSummary {
+  id: number;
+  start: number;
+  end: number;
+  localStart: number;
+  localEnd: number;
+  durationMinutes: number;
+  asleepMinutes: number;
+  awakeMinutes: number;
+  efficiency: number;
+  awakenings: number;
+  transitions: number;
+  title: string;
+  source: string;
+  stages: SleepStage[];
+  stageTotals: SleepStageTotal[];
+  heartRate: DataPoint[];
+  hrv: number | null;
+  restingHeartRate: number | null;
+  respiratoryRate: number | null;
+  skinTemperatureDelta: number | null;
 }
 
 export interface Summary {
@@ -45,6 +105,8 @@ export interface Summary {
   heartRateMax: number | null;
   latestWeightGrams: number | null;
   averageSleepMinutes: number | null;
+  averageAsleepMinutes: number | null;
+  averageSleepEfficiency: number | null;
 }
 
 export interface HealthReport {
@@ -56,11 +118,14 @@ export interface HealthReport {
   activity: DailyActivity[];
   hourlySteps: DataPoint[];
   heartRate: DataPoint[];
+  heartRateBucketMinutes: number;
   exercises: ExerciseSession[];
   weight: DataPoint[];
-  sleep: DataPoint[];
+  sleep: SleepSession[];
   restingHeartRate: DataPoint[];
   hrv: DataPoint[];
+  respiratoryRate: DataPoint[];
+  skinTemperature: DataPoint[];
   oxygen: DataPoint[];
   bloodPressure: DataPoint[];
   hydration: DataPoint[];

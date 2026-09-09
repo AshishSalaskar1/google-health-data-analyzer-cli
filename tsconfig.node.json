@@ -7,5 +7,5 @@
     "moduleResolution": "Bundler",
     "allowImportingTsExtensions": true
   },
-  "include": ["vite.config.ts"]
+  "include": ["vite.config.ts", "server/**/*.ts", "src/coach/models.ts", "src/health/models.ts", "src/overall/models.ts"]
 }
