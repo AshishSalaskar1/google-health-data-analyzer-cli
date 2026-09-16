@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import { HealthDatabaseClient } from "./database/client";
 import { exportReport } from "./export/exportReport";
+import { SLEEP_STAGE_AWAKE_TYPES, SLEEP_STAGE_DEEP_TYPES, SLEEP_STAGE_LIGHT_TYPES, SLEEP_STAGE_REM_TYPES } from "./health/enums";
 import type { DatabaseInfo, HealthReport, SleepSession, Theme, Units } from "./health/models";
 
 const CoachView = lazy(() => import("./coach/CoachView").then((module) => ({ default: module.CoachView })));
@@ -190,10 +191,10 @@ function ExerciseView({ report, units }: { report: HealthReport; units: Units })
 }
 
 const SLEEP_LANES = [
-  { name: "Awake", types: [1, 3, 7], color: STAGE_COLORS[1] },
-  { name: "REM", types: [6], color: STAGE_COLORS[6] },
-  { name: "Light", types: [2, 4], color: STAGE_COLORS[4] },
-  { name: "Deep", types: [5], color: STAGE_COLORS[5] },
+  { name: "Awake", types: SLEEP_STAGE_AWAKE_TYPES, color: STAGE_COLORS[1] },
+  { name: "REM", types: SLEEP_STAGE_REM_TYPES, color: STAGE_COLORS[6] },
+  { name: "Light", types: SLEEP_STAGE_LIGHT_TYPES, color: STAGE_COLORS[4] },
+  { name: "Deep", types: SLEEP_STAGE_DEEP_TYPES, color: STAGE_COLORS[5] },
 ];
 
 function sleepLane(type: number): number {
@@ -209,14 +210,13 @@ function SleepHypnogram({ session }: { session: SleepSession }) {
   const duration = session.end - session.start || 1;
   const x = (time: number) => (time - session.start) / duration * width;
   const y = (type: number) => sleepLane(type) * laneHeight + (laneHeight - barHeight) / 2;
-  const percentOfSleep = (types: number[]) => {
-    if (types.includes(6)) return session.detailed.remPercentOfSleep;
-    if (types.includes(5)) return session.detailed.deepPercentOfSleep;
-    if (types.includes(2)) return session.detailed.lightPercentOfSleep;
-    return null;
+  const percentOfSleep: Record<string, number | null> = {
+    REM: session.detailed.remPercentOfSleep,
+    Deep: session.detailed.deepPercentOfSleep,
+    Light: session.detailed.lightPercentOfSleep,
   };
   return <div className="sleep-timeline" aria-label={`Recorded sleep stages from ${archiveTime.format(session.localStart)} to ${archiveTime.format(session.localEnd)}`}>
-    <div className="sleep-lane-labels">{SLEEP_LANES.map((lane) => { const total = session.stageTotals.filter((stage) => lane.types.includes(stage.type)).reduce((sum, stage) => sum + stage.minutes, 0); const percent = percentOfSleep(lane.types); return <div key={lane.name}><strong>{lane.name}</strong><span>{formatDuration(total)}{percent !== null && percent !== undefined && <em>{number.format(percent)}% of sleep</em>}</span></div>; })}</div>
+    <div className="sleep-lane-labels">{SLEEP_LANES.map((lane) => { const total = session.stageTotals.filter((stage) => lane.types.includes(stage.type)).reduce((sum, stage) => sum + stage.minutes, 0); const percent = percentOfSleep[lane.name] ?? null; return <div key={lane.name}><strong>{lane.name}</strong><span>{formatDuration(total)}{percent !== null && <em>{number.format(percent)}% of sleep</em>}</span></div>; })}</div>
     <div className="sleep-svg-wrap"><svg viewBox={`0 0 ${width} ${laneHeight * 4}`} preserveAspectRatio="none" shapeRendering="geometricPrecision" role="img">
       {SLEEP_LANES.map((lane, index) => <rect key={lane.name} x="0" y={index * laneHeight + (laneHeight - barHeight) / 2} width={width} height={barHeight} rx="17" fill="var(--sleep-track)" />)}
       {session.stages.slice(1).map((stage, index) => { const previous = session.stages[index]; const fromY = y(previous.type) + barHeight / 2; const toY = y(stage.type) + barHeight / 2; const position = Math.round(x(stage.start)) + .5; return fromY === toY ? null : <line className="sleep-stage-connector" key={`line-${stage.start}`} x1={position} x2={position} y1={fromY} y2={toY} stroke={STAGE_COLORS[stage.type]} strokeWidth="2" vectorEffect="non-scaling-stroke" />; })}

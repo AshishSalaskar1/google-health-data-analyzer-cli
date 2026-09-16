@@ -17,6 +17,12 @@ const SLEEP_STAGES: Record<number, string> = {
   7: "Awake in bed",
 };
 
+// Single source of truth for stage-type groupings used across sleep calculations and the sleep UI.
+export const SLEEP_STAGE_AWAKE_TYPES = [1, 3, 7];
+export const SLEEP_STAGE_REM_TYPES = [6];
+export const SLEEP_STAGE_DEEP_TYPES = [5];
+export const SLEEP_STAGE_LIGHT_TYPES = [2, 4];
+
 export function exerciseName(type: number): string {
   return EXERCISE_TYPES[type] ?? `Activity ${type}`;
 }
@@ -26,5 +32,5 @@ export function sleepStageName(type: number): string {
 }
 
 export function isAwakeStage(type: number): boolean {
-  return type === 1 || type === 3 || type === 7;
+  return (SLEEP_STAGE_AWAKE_TYPES as number[]).includes(type);
 }

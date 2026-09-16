@@ -76,6 +76,7 @@ function project(domain: CoachDomain, report: HealthReport, granularity: CoachTo
       end: session.localEnd, durationMinutes: session.durationMinutes, asleepMinutes: session.asleepMinutes,
       awakeMinutes: session.awakeMinutes, efficiency: session.efficiency, awakenings: session.awakenings,
       sleepLatencyMinutes: session.detailed.sleepLatencyMinutes, wakeAfterSleepOnsetMinutes: session.detailed.wakeAfterSleepOnsetMinutes,
+      longestAwakeStretchMinutes: session.detailed.longestAwakeStretchMinutes, fragmentationPerHour: session.detailed.fragmentationPerHour,
       remMinutes: session.detailed.remMinutes, deepMinutes: session.detailed.deepMinutes, lightMinutes: session.detailed.lightMinutes,
       hrv: session.hrv, restingHeartRate: session.restingHeartRate, respiratoryRate: session.respiratoryRate,
       skinTemperatureDelta: session.skinTemperatureDelta,

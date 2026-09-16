@@ -1,4 +1,4 @@
-import { isAwakeStage, sleepStageName } from "./enums";
+import { isAwakeStage, SLEEP_STAGE_DEEP_TYPES, SLEEP_STAGE_LIGHT_TYPES, SLEEP_STAGE_REM_TYPES, sleepStageName } from "./enums";
 import type { SleepDetailedMetrics, SleepSession, SleepStage, SleepStageTotal } from "./models";
 
 export interface SleepBreakdown {
@@ -11,12 +11,14 @@ export interface SleepBreakdown {
   detailed: SleepDetailedMetrics;
 }
 
-const REM_TYPES = [6];
-const DEEP_TYPES = [5];
-const LIGHT_TYPES = [2, 4];
-
 function minutesForTypes(stageTotals: SleepStageTotal[], types: number[]): number {
   return stageTotals.filter((stage) => types.includes(stage.type)).reduce((sum, stage) => sum + stage.minutes, 0);
+}
+
+function computeSleepLatencyMinutes(stages: SleepStage[], onsetIndex: number): number | null {
+  if (onsetIndex < 0) return null;
+  if (onsetIndex === 0) return 0;
+  return stages.slice(0, onsetIndex).reduce((sum, stage) => sum + stage.durationMinutes, 0);
 }
 
 export function summarizeSleep(stages: SleepStage[], durationMinutes: number): SleepBreakdown {
@@ -41,9 +43,7 @@ export function summarizeSleep(stages: SleepStage[], durationMinutes: number): S
     if (!isAwakeStage(stages[index].type)) { offsetIndex = index; break; }
   }
   const hasStageData = stages.length > 0;
-  const sleepLatencyMinutes = hasStageData && onsetIndex > 0
-    ? stages.slice(0, onsetIndex).reduce((sum, stage) => sum + stage.durationMinutes, 0)
-    : hasStageData && onsetIndex === 0 ? 0 : null;
+  const sleepLatencyMinutes = hasStageData ? computeSleepLatencyMinutes(stages, onsetIndex) : null;
   const wakeAfterSleepOnsetMinutes = hasStageData && onsetIndex >= 0 && offsetIndex >= onsetIndex
     ? stages.slice(onsetIndex, offsetIndex + 1).filter((stage) => isAwakeStage(stage.type)).reduce((sum, stage) => sum + stage.durationMinutes, 0)
     : null;
@@ -51,9 +51,9 @@ export function summarizeSleep(stages: SleepStage[], durationMinutes: number): S
     ? stages.filter((stage) => isAwakeStage(stage.type)).reduce((max, stage) => Math.max(max, stage.durationMinutes), 0)
     : null;
   const fragmentationPerHour = hasStageData && asleepMinutes > 0 ? awakenings / (asleepMinutes / 60) : null;
-  const remMinutes = hasStageData ? minutesForTypes(stageTotals, REM_TYPES) : null;
-  const deepMinutes = hasStageData ? minutesForTypes(stageTotals, DEEP_TYPES) : null;
-  const lightMinutes = hasStageData ? minutesForTypes(stageTotals, LIGHT_TYPES) : null;
+  const remMinutes = hasStageData ? minutesForTypes(stageTotals, SLEEP_STAGE_REM_TYPES) : null;
+  const deepMinutes = hasStageData ? minutesForTypes(stageTotals, SLEEP_STAGE_DEEP_TYPES) : null;
+  const lightMinutes = hasStageData ? minutesForTypes(stageTotals, SLEEP_STAGE_LIGHT_TYPES) : null;
 
   return {
     asleepMinutes,
