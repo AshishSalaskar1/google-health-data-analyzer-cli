@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 import type { Database, SqlJsStatic } from "sql.js";
 import sqlJsSource from "sql.js/dist/sql-asm.js?raw";
-import { summarizeSleep } from "../health/calculations";
+import { summarizeSleep, summarizeSleepSchedule } from "../health/calculations";
 import { exerciseName, sleepStageName } from "../health/enums";
 import type {
   AnalyzeFilters,
@@ -325,6 +325,7 @@ function analyzeSleep(filters: AnalyzeFilters): SleepSession[] {
       asleepMinutes: breakdown.asleepMinutes, awakeMinutes: breakdown.awakeMinutes,
       efficiency: breakdown.efficiency, awakenings: breakdown.awakenings,
       transitions: breakdown.transitions, title: row.title, source: row.source, stages, stageTotals: breakdown.stageTotals,
+      detailed: breakdown.detailed,
       heartRate: heart.points, minimum: heart.minimum, average: heart.average, maximum: heart.maximum,
       hrv: instantAverage("heart_rate_variability_rmssd_record_table", "heart_rate_variability_millis", start, end),
       restingHeartRate: instantAverage("resting_heart_rate_record_table", "beats_per_minute", start, end),
@@ -423,6 +424,7 @@ function analyze(filters: AnalyzeFilters): HealthReport {
   const averageSleepMinutes = sleep.length ? sleep.reduce((sum, session) => sum + session.durationMinutes, 0) / sleep.length : null;
   const averageAsleepMinutes = sleep.length ? sleep.reduce((sum, session) => sum + session.asleepMinutes, 0) / sleep.length : null;
   const averageSleepEfficiency = sleep.length ? sleep.reduce((sum, session) => sum + session.efficiency, 0) / sleep.length : null;
+  const scheduleConsistency = summarizeSleepSchedule(sleep);
 
   const report: HealthReport = {
     fileName, schemaVersion: info.schemaVersion, generatedAt: Date.now(),
@@ -437,6 +439,8 @@ function analyze(filters: AnalyzeFilters): HealthReport {
       heartRateMax: heartStats?.maximum == null ? null : Number(heartStats.maximum),
       latestWeightGrams: weight.at(-1)?.value ?? null,
       averageSleepMinutes, averageAsleepMinutes, averageSleepEfficiency,
+      sleepBedtimeConsistencyMinutes: scheduleConsistency.bedtimeConsistencyMinutes,
+      sleepWakeConsistencyMinutes: scheduleConsistency.wakeConsistencyMinutes,
     },
     activity, hourlySteps, heartRate, heartRateBucketMinutes: heartBucketMillis / 60000,
     exercises, weight, sleep, restingHeartRate, hrv, respiratoryRate,

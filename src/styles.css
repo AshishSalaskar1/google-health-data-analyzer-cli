@@ -266,6 +266,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .sleep-lane-labels > div { display: flex; flex-direction: column; justify-content: center; }
 .sleep-lane-labels strong { font-size: 14px; }
 .sleep-lane-labels span { margin-top: 3px; color: var(--muted); font-size: 11px; }
+.sleep-lane-labels em { display: block; font-style: normal; color: var(--muted); font-size: 10px; opacity: .82; }
 .sleep-svg-wrap { position: relative; min-width: 0; }
 .sleep-svg-wrap svg { display: block; width: 100%; height: 264px; overflow: visible; }
 .sleep-stage-connector { opacity: .72; shape-rendering: geometricPrecision; }
@@ -276,10 +277,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .sleep-stage-tooltip span { color: var(--primary); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .sleep-stage-tooltip small { color: var(--muted); font-size: 9px; }
 .sleep-time-axis { display: flex; justify-content: space-between; margin-top: 12px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
-.sleep-facts { margin: 40px 0 0 147px; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); }
-.sleep-facts span { padding: 18px 0 0; display: flex; flex-direction: column; }
-.sleep-facts small, .recovery-list small { color: var(--muted); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
+.sleep-facts { margin: 40px 0 0 147px; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); border-top: 1px solid var(--line); }
+.sleep-facts span { padding: 18px 14px 0 0; display: flex; flex-direction: column; }
+.sleep-facts small, .recovery-list small { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
 .sleep-facts b { margin-top: 4px; font-size: 17px; }
+.fact-hint { width: 15px; height: 15px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 50%; color: var(--muted); background: transparent; cursor: help; }
+.fact-hint svg { width: 12px; height: 12px; }
+.fact-hint:hover, .fact-hint:focus-visible { color: var(--primary); }
 .sleep-history { padding: 48px 0; border-bottom: 1px solid var(--line); }
 .sleep-history header p { margin: 0; }
 .sleep-history-scroll { height: 200px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(64px, 1fr); align-items: end; gap: 11px; overflow-x: auto; }
