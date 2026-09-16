@@ -33,7 +33,7 @@ describe("summarizeSleep", () => {
     expect(result.detailed.hasStageData).toBe(true);
     expect(result.detailed.sleepLatencyMinutes).toBe(10);
     expect(result.detailed.wakeAfterSleepOnsetMinutes).toBe(15);
-    expect(result.detailed.longestAwakeStretchMinutes).toBe(20);
+    expect(result.detailed.longestAwakeStretchMinutes).toBe(15);
     expect(result.detailed.remMinutes).toBe(100);
     expect(result.detailed.deepMinutes).toBe(70);
     expect(result.detailed.lightMinutes).toBe(180);

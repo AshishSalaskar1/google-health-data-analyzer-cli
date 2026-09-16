@@ -53,8 +53,9 @@ export function summarizeSleep(stages: SleepStage[], durationMinutes: number): S
   const wakeAfterSleepOnsetMinutes = hasOnsetWindow
     ? onsetWindowStages.filter((stage) => isAwakeStage(stage.type)).reduce((sum, stage) => sum + stage.durationMinutes, 0)
     : null;
-  const longestAwakeStretchMinutes = hasStageData
-    ? stages.filter((stage) => isAwakeStage(stage.type)).reduce((max, stage) => Math.max(max, stage.durationMinutes), 0)
+  // Scoped to the onset-offset window (like WASO/fragmentation) so it never exceeds WASO.
+  const longestAwakeStretchMinutes = hasOnsetWindow
+    ? onsetWindowStages.filter((stage) => isAwakeStage(stage.type)).reduce((max, stage) => Math.max(max, stage.durationMinutes), 0)
     : null;
   // Fragmentation counts awakenings within the sleep-onset-to-offset window, matching the scope of asleepMinutes.
   const fragmentationPerHour = hasOnsetWindow && asleepMinutes > 0 ? countAwakenings(onsetWindowStages) / (asleepMinutes / 60) : null;
