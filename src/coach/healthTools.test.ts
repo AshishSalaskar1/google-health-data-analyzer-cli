@@ -4,7 +4,7 @@ import type { HealthReport } from "../health/models";
 
 const report = {
   range: { min: "2025-01-01", max: "2025-12-31", selectedFrom: "2025-01-01", selectedTo: "2025-12-31" },
-  summary: { totalSteps: 3000, averageDailySteps: 1500, trackedDays: 2, totalDistanceMeters: 2000, totalEnergyJoules: 1000, exerciseCount: 0, exerciseMinutes: 0, heartRateMin: null, heartRateAverage: null, heartRateMax: null, latestWeightGrams: null, averageSleepMinutes: null, averageAsleepMinutes: null, averageSleepEfficiency: null },
+  summary: { totalSteps: 3000, averageDailySteps: 1500, trackedDays: 2, totalDistanceMeters: 2000, totalEnergyJoules: 1000, exerciseCount: 0, exerciseMinutes: 0, heartRateMin: null, heartRateAverage: null, heartRateMax: null, latestWeightGrams: null, averageSleepMinutes: null, averageAsleepMinutes: null, averageSleepEfficiency: null, sleepBedtimeConsistencyMinutes: null, sleepWakeConsistencyMinutes: null },
   activity: [{ date: "2025-12-30", steps: 1000, distanceMeters: 700, energyJoules: 400 }, { date: "2025-12-31", steps: 2000, distanceMeters: 1300, energyJoules: 600 }],
   heartRate: [], restingHeartRate: [], exercises: [], sleep: [], weight: [], hrv: [], respiratoryRate: [], skinTemperature: [], oxygen: [], bloodPressure: [], hydration: [], hourlySteps: [], heartRateBucketMinutes: 60,
   sources: [{ id: 1, name: "Watch", packageName: "watch", records: 2 }], warnings: [], availableTables: [], fileName: "test.db", schemaVersion: 26, generatedAt: 0,
