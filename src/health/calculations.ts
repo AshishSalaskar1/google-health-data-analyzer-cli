@@ -15,6 +15,10 @@ function minutesForTypes(stageTotals: SleepStageTotal[], types: number[]): numbe
   return stageTotals.filter((stage) => types.includes(stage.type)).reduce((sum, stage) => sum + stage.minutes, 0);
 }
 
+function countAwakenings(stages: SleepStage[]): number {
+  return stages.filter((stage, index) => index > 0 && isAwakeStage(stage.type) && !isAwakeStage(stages[index - 1].type)).length;
+}
+
 function computeSleepLatencyMinutes(stages: SleepStage[], onsetIndex: number): number | null {
   if (onsetIndex < 0) return null;
   if (onsetIndex === 0) return 0;
@@ -33,7 +37,7 @@ export function summarizeSleep(stages: SleepStage[], durationMinutes: number): S
   const awakeMinutes = stages.filter((stage) => isAwakeStage(stage.type)).reduce((sum, stage) => sum + stage.durationMinutes, 0);
   const stagedMinutes = stages.reduce((sum, stage) => sum + stage.durationMinutes, 0);
   const asleepMinutes = stages.length ? Math.max(0, stagedMinutes - awakeMinutes) : durationMinutes;
-  const awakenings = stages.filter((stage, index) => index > 0 && isAwakeStage(stage.type) && !isAwakeStage(stages[index - 1].type)).length;
+  const awakenings = countAwakenings(stages);
 
   // Sleep onset/offset are the first/last recorded asleep stages; used to derive latency and
   // wake-after-sleep-onset only when the archive actually recorded a transition into sleep.
@@ -43,14 +47,17 @@ export function summarizeSleep(stages: SleepStage[], durationMinutes: number): S
     if (!isAwakeStage(stages[index].type)) { offsetIndex = index; break; }
   }
   const hasStageData = stages.length > 0;
+  const hasOnsetWindow = hasStageData && onsetIndex >= 0 && offsetIndex >= onsetIndex;
+  const onsetWindowStages = hasOnsetWindow ? stages.slice(onsetIndex, offsetIndex + 1) : [];
   const sleepLatencyMinutes = hasStageData ? computeSleepLatencyMinutes(stages, onsetIndex) : null;
-  const wakeAfterSleepOnsetMinutes = hasStageData && onsetIndex >= 0 && offsetIndex >= onsetIndex
-    ? stages.slice(onsetIndex, offsetIndex + 1).filter((stage) => isAwakeStage(stage.type)).reduce((sum, stage) => sum + stage.durationMinutes, 0)
+  const wakeAfterSleepOnsetMinutes = hasOnsetWindow
+    ? onsetWindowStages.filter((stage) => isAwakeStage(stage.type)).reduce((sum, stage) => sum + stage.durationMinutes, 0)
     : null;
   const longestAwakeStretchMinutes = hasStageData
     ? stages.filter((stage) => isAwakeStage(stage.type)).reduce((max, stage) => Math.max(max, stage.durationMinutes), 0)
     : null;
-  const fragmentationPerHour = hasStageData && asleepMinutes > 0 ? awakenings / (asleepMinutes / 60) : null;
+  // Fragmentation counts awakenings within the sleep-onset-to-offset window, matching the scope of asleepMinutes.
+  const fragmentationPerHour = hasOnsetWindow && asleepMinutes > 0 ? countAwakenings(onsetWindowStages) / (asleepMinutes / 60) : null;
   const remMinutes = hasStageData ? minutesForTypes(stageTotals, SLEEP_STAGE_REM_TYPES) : null;
   const deepMinutes = hasStageData ? minutesForTypes(stageTotals, SLEEP_STAGE_DEEP_TYPES) : null;
   const lightMinutes = hasStageData ? minutesForTypes(stageTotals, SLEEP_STAGE_LIGHT_TYPES) : null;
