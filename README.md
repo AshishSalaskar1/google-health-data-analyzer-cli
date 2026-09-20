@@ -37,6 +37,19 @@ Body Age is not biological age, a diagnosis, or a reproduction of a proprietary 
 
 For a multi-day range, Sleep Consistency shows the recorded stage mix and duration for each night. Selecting a night updates its sleep-stage timeline and recovery values without changing the global date filter.
 
+### Detailed sleep metrics
+
+Alongside time in bed, time asleep, and efficiency, the Sleep view derives additional descriptive metrics directly from recorded Health Connect sleep-session and sleep-stage data:
+
+- **Sleep latency** – time between the start of the session and the first recorded asleep stage.
+- **Awake after sleep onset (WASO)** – recorded awake minutes between falling asleep and the final asleep stage, distinct from total awake time.
+- **Longest awake stretch** – the longest single recorded awake stage in the session.
+- **Fragmentation** – recorded awakenings per hour asleep, as a continuity indicator.
+- **REM / deep / light composition** – minutes and percentage of recorded sleep in each stage.
+- **Sleep schedule consistency** – the night-to-night spread of recorded bed and wake clock times across the selected period (lower spread means more consistent timing; requires at least two recorded nights).
+
+These are descriptive measurements derived entirely from your archive's recorded sleep-session and sleep-stage rows. They are not medical advice, a diagnosis, or a substitute for clinical sleep assessment. When a night has no recorded sleep stages, stage-dependent metrics (latency, WASO, longest awake stretch, and stage composition) are shown as explicitly "Not recorded" rather than inferred — a missing value reflects missing sensor data, not necessarily poor sleep.
+
 Recovery Context can compare these measurements by night when present:
 
 - Heart-rate variability (HRV)
@@ -160,6 +173,6 @@ Optional tables and empty metrics are handled without failing the analysis.
 - Compatibility with every Health Connect schema version is not guaranteed.
 - Formal cross-source deduplication is outside the current scope.
 - Exercise steps, distance, and energy are overlap estimates because Health Connect stores those records independently from exercise sessions.
-- Sleep stages are displayed as recorded; the app does not infer sleep-cycle boundaries.
+- Sleep stages are displayed as recorded; the app does not infer sleep-cycle boundaries. Detailed sleep metrics (latency, WASO, fragmentation, stage composition, schedule consistency) are derived only when the underlying data is present and are descriptive, not diagnostic.
 - Wellness scores and Body Age are descriptive estimates, not medical assessments.
 - The coach does not diagnose conditions, prescribe treatment, direct medication changes, or replace emergency care.

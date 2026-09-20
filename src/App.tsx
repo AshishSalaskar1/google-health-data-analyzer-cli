@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import { HealthDatabaseClient } from "./database/client";
 import { exportReport } from "./export/exportReport";
+import { SLEEP_STAGE_AWAKE_TYPES, SLEEP_STAGE_DEEP_TYPES, SLEEP_STAGE_LIGHT_TYPES, SLEEP_STAGE_REM_TYPES } from "./health/enums";
 import type { DatabaseInfo, HealthReport, SleepSession, Theme, Units } from "./health/models";
 
 const CoachView = lazy(() => import("./coach/CoachView").then((module) => ({ default: module.CoachView })));
@@ -66,6 +67,10 @@ function Panel({ title, eyebrow, action, children, className = "" }: { title: st
 
 function Empty({ icon: Icon, title, message }: { icon: Icon; title: string; message: string }) {
   return <div className="empty"><Icon /><h3>{title}</h3><p>{message}</p></div>;
+}
+
+function FactHint({ text }: { text: string }) {
+  return <button type="button" className="fact-hint" title={text} aria-label={text}><Info aria-hidden="true" /></button>;
 }
 
 type TipItem = { value: number; name: string; color?: string; dataKey?: string };
@@ -186,10 +191,10 @@ function ExerciseView({ report, units }: { report: HealthReport; units: Units })
 }
 
 const SLEEP_LANES = [
-  { name: "Awake", types: [1, 3, 7], color: STAGE_COLORS[1] },
-  { name: "REM", types: [6], color: STAGE_COLORS[6] },
-  { name: "Light", types: [2, 4], color: STAGE_COLORS[4] },
-  { name: "Deep", types: [5], color: STAGE_COLORS[5] },
+  { name: "Awake", types: SLEEP_STAGE_AWAKE_TYPES, color: STAGE_COLORS[1] },
+  { name: "REM", types: SLEEP_STAGE_REM_TYPES, color: STAGE_COLORS[6] },
+  { name: "Light", types: SLEEP_STAGE_LIGHT_TYPES, color: STAGE_COLORS[4] },
+  { name: "Deep", types: SLEEP_STAGE_DEEP_TYPES, color: STAGE_COLORS[5] },
 ];
 
 function sleepLane(type: number): number {
@@ -205,8 +210,13 @@ function SleepHypnogram({ session }: { session: SleepSession }) {
   const duration = session.end - session.start || 1;
   const x = (time: number) => (time - session.start) / duration * width;
   const y = (type: number) => sleepLane(type) * laneHeight + (laneHeight - barHeight) / 2;
+  const percentOfSleep: Record<string, number | null> = {
+    REM: session.detailed.remPercentOfSleep,
+    Deep: session.detailed.deepPercentOfSleep,
+    Light: session.detailed.lightPercentOfSleep,
+  };
   return <div className="sleep-timeline" aria-label={`Recorded sleep stages from ${archiveTime.format(session.localStart)} to ${archiveTime.format(session.localEnd)}`}>
-    <div className="sleep-lane-labels">{SLEEP_LANES.map((lane) => { const total = session.stageTotals.filter((stage) => lane.types.includes(stage.type)).reduce((sum, stage) => sum + stage.minutes, 0); return <div key={lane.name}><strong>{lane.name}</strong><span>{formatDuration(total)}</span></div>; })}</div>
+    <div className="sleep-lane-labels">{SLEEP_LANES.map((lane) => { const total = session.stageTotals.filter((stage) => lane.types.includes(stage.type)).reduce((sum, stage) => sum + stage.minutes, 0); const percent = percentOfSleep[lane.name] ?? null; return <div key={lane.name}><strong>{lane.name}</strong><span>{formatDuration(total)}{percent !== null && <em>{number.format(percent)}% of sleep</em>}</span></div>; })}</div>
     <div className="sleep-svg-wrap"><svg viewBox={`0 0 ${width} ${laneHeight * 4}`} preserveAspectRatio="none" shapeRendering="geometricPrecision" role="img">
       {SLEEP_LANES.map((lane, index) => <rect key={lane.name} x="0" y={index * laneHeight + (laneHeight - barHeight) / 2} width={width} height={barHeight} rx="17" fill="var(--sleep-track)" />)}
       {session.stages.slice(1).map((stage, index) => { const previous = session.stages[index]; const fromY = y(previous.type) + barHeight / 2; const toY = y(stage.type) + barHeight / 2; const position = Math.round(x(stage.start)) + .5; return fromY === toY ? null : <line className="sleep-stage-connector" key={`line-${stage.start}`} x1={position} x2={position} y1={fromY} y2={toY} stroke={STAGE_COLORS[stage.type]} strokeWidth="2" vectorEffect="non-scaling-stroke" />; })}
@@ -228,7 +238,10 @@ function SleepView({ report }: { report: HealthReport }) {
   const isSingleDay = report.range.selectedFrom === report.range.selectedTo;
   if (!selected) return <><PageIntro kicker="Rest and recovery" title="Sleep">Recorded sleep detail from your archive.</PageIntro><Empty icon={Moon} title="No sleep data" message="No sessions match the current filters." /></>;
   const efficiencyCopy = selected.efficiency >= 90 ? "Your recorded sleep efficiency was high." : selected.efficiency >= 80 ? "Your recorded sleep efficiency was moderate." : "A larger share of this session was recorded awake.";
-  const deepSleepMinutes = selected.stageTotals.filter((stage) => SLEEP_LANES[3].types.includes(stage.type)).reduce((sum, stage) => sum + stage.minutes, 0);
+  const detail = selected.detailed;
+  const stageFact = (minutes: number | null) => minutes === null ? "Not recorded" : formatDuration(minutes);
+  const bedtimeConsistency = report.summary.sleepBedtimeConsistencyMinutes;
+  const wakeConsistency = report.summary.sleepWakeConsistencyMinutes;
   const recoveryConfig = {
     hrv: { label: "HRV", suffix: " ms", color: "var(--chart-blue)" },
     restingHeartRate: { label: "Resting heart rate", suffix: " bpm", color: "var(--chart-coral)" },
@@ -243,8 +256,18 @@ function SleepView({ report }: { report: HealthReport }) {
     skinTemperatureDelta: report.sleep.some((session) => session.skinTemperatureDelta !== null),
   };
   const hasRecoveryData = recoveryAvailability[recoveryMetric];
-  return <div className="sleep-page">{isSingleDay ? <div className="sleep-hero"><div><span className="kicker">Sleep · {archiveDate.format(selected.localEnd)}</span><h1>{formatDuration(selected.asleepMinutes)}</h1><strong>{archiveTime.format(selected.localStart)}–{archiveTime.format(selected.localEnd)}</strong><p>You spent {formatDuration(selected.durationMinutes)} in the sleep session, with {number.format(selected.efficiency)}% efficiency. {efficiencyCopy}</p></div><div className="sleep-hero-orbit"><Moon /><span><b>{selected.awakenings}</b> awakenings</span><span><b>{selected.average === null ? "—" : Math.round(selected.average)}</b> avg bpm</span></div></div> : <><PageIntro kicker="Rest and recovery" title="Sleep">Review sleep and recovery across the selected period. Choose a night below to inspect its recorded signals.</PageIntro><div className="metrics-grid three"><MetricCard label="Average asleep" value={formatDuration(report.summary.averageAsleepMinutes)} detail={`${report.sleep.length} recorded sessions`} tone="violet" /><MetricCard label="Average efficiency" value={report.summary.averageSleepEfficiency === null ? "—" : `${number.format(report.summary.averageSleepEfficiency)}%`} detail="asleep ÷ session time" /><MetricCard label="Selected night" value={formatDuration(selected.asleepMinutes)} detail={archiveDate.format(selected.localEnd)} tone="blue" /></div><SleepHistory sessions={report.sleep} selectedId={selected.id} onSelect={setSelectedId} /></>}
-    <section className="sleep-focus"><header><div><span className="eyebrow">Recorded timeline</span><h2>Sleep stages · {archiveDate.format(selected.localEnd)}</h2></div><div className="sleep-source">{selected.source} · {selected.stages.length} intervals</div></header><SleepHypnogram session={selected} /><div className="sleep-facts"><span><small>In bed</small><b>{formatDuration(selected.durationMinutes)}</b></span><span><small>Asleep</small><b>{formatDuration(selected.asleepMinutes)}</b></span><span><small>Deep sleep</small><b>{formatDuration(deepSleepMinutes)}</b></span><span><small>Awake</small><b>{formatDuration(selected.awakeMinutes)}</b></span><span><small>Efficiency</small><b>{number.format(selected.efficiency)}%</b></span></div></section>
+  return <div className="sleep-page">{isSingleDay ? <div className="sleep-hero"><div><span className="kicker">Sleep · {archiveDate.format(selected.localEnd)}</span><h1>{formatDuration(selected.asleepMinutes)}</h1><strong>{archiveTime.format(selected.localStart)}–{archiveTime.format(selected.localEnd)}</strong><p>You spent {formatDuration(selected.durationMinutes)} in the sleep session, with {number.format(selected.efficiency)}% efficiency. {efficiencyCopy}</p></div><div className="sleep-hero-orbit"><Moon /><span><b>{selected.awakenings}</b> awakenings</span><span><b>{selected.average === null ? "—" : Math.round(selected.average)}</b> avg bpm</span></div></div> : <><PageIntro kicker="Rest and recovery" title="Sleep">Review sleep and recovery across the selected period. Choose a night below to inspect its recorded signals.</PageIntro><div className="metrics-grid four"><MetricCard label="Average asleep" value={formatDuration(report.summary.averageAsleepMinutes)} detail={`${report.sleep.length} recorded sessions`} tone="violet" /><MetricCard label="Average efficiency" value={report.summary.averageSleepEfficiency === null ? "—" : `${number.format(report.summary.averageSleepEfficiency)}%`} detail="asleep ÷ session time" /><MetricCard label="Sleep schedule" value={bedtimeConsistency === null ? "Needs 2+ nights" : `±${Math.round(bedtimeConsistency)}m bedtime`} detail={wakeConsistency === null ? "Wake spread unavailable" : `±${Math.round(wakeConsistency)}m wake time`} tone="amber" /><MetricCard label="Selected night" value={formatDuration(selected.asleepMinutes)} detail={archiveDate.format(selected.localEnd)} tone="blue" /></div><SleepHistory sessions={report.sleep} selectedId={selected.id} onSelect={setSelectedId} /></>}
+    <section className="sleep-focus"><header><div><span className="eyebrow">Recorded timeline</span><h2>Sleep stages · {archiveDate.format(selected.localEnd)}</h2></div><div className="sleep-source">{selected.source} · {selected.stages.length} intervals</div></header><SleepHypnogram session={selected} /><div className="sleep-facts">
+      <span><small>In bed</small><b>{formatDuration(selected.durationMinutes)}</b></span>
+      <span><small>Asleep</small><b>{formatDuration(selected.asleepMinutes)}</b></span>
+      <span><small>Deep sleep</small><b>{stageFact(detail.deepMinutes)}</b></span>
+      <span><small>Awake</small><b>{formatDuration(selected.awakeMinutes)}</b></span>
+      <span><small>Efficiency</small><b>{number.format(selected.efficiency)}%</b></span>
+      <span><small>Sleep latency<FactHint text="Time between the start of this session and the first recorded asleep stage. Only shown when the archive recorded stage-level detail." /></small><b>{stageFact(detail.sleepLatencyMinutes)}</b></span>
+      <span><small>Awake after onset<FactHint text="Recorded awake time between falling asleep and your final asleep stage — distinct from total awake time, which also covers time before sleep onset." /></small><b>{stageFact(detail.wakeAfterSleepOnsetMinutes)}</b></span>
+      <span><small>Longest awake stretch<FactHint text="The single longest recorded awake stage between falling asleep and your final asleep stage — same window as awake after onset." /></small><b>{stageFact(detail.longestAwakeStretchMinutes)}</b></span>
+      <span><small>Fragmentation<FactHint text="Recorded awakenings per hour asleep. A higher value suggests more interrupted sleep; it is not a clinical score." /></small><b>{detail.fragmentationPerHour === null ? "Not recorded" : `${number.format(detail.fragmentationPerHour)}/hr`}</b></span>
+    </div>{!detail.hasStageData && <p className="data-note"><Info /> This session has no recorded sleep stages, so latency, awake-after-onset, and stage composition can't be derived. A missing value here reflects missing sensor data, not necessarily poor sleep.</p>}</section>
     <section className="sleep-recovery"><div className="recovery-copy"><span className="eyebrow">Overnight signals</span><h2>Recovery context</h2><p>{isSingleDay ? "Sensor readings captured during this sleep session." : `Measurements for ${archiveDate.format(selected.localEnd)}. Choose a signal to compare it across the selected period.`} These are measurements, not a readiness score.</p><div className="recovery-list"><button className={recoveryMetric === "hrv" ? "active" : ""} disabled={!recoveryAvailability.hrv} onClick={() => setRecoveryMetric("hrv")}><small>HRV</small><b>{selected.hrv === null ? "Not recorded" : `${number.format(selected.hrv)} ms`}</b></button><button className={recoveryMetric === "restingHeartRate" ? "active" : ""} disabled={!recoveryAvailability.restingHeartRate} onClick={() => setRecoveryMetric("restingHeartRate")}><small>Resting heart rate</small><b>{selected.restingHeartRate === null ? "Not recorded" : `${number.format(selected.restingHeartRate)} bpm`}</b></button><button className={recoveryMetric === "respiratoryRate" ? "active" : ""} disabled={!recoveryAvailability.respiratoryRate} onClick={() => setRecoveryMetric("respiratoryRate")}><small>Breathing</small><b>{selected.respiratoryRate === null ? "Not recorded" : `${number.format(selected.respiratoryRate)}/min`}</b></button><button className={recoveryMetric === "skinTemperatureDelta" ? "active" : ""} disabled={!recoveryAvailability.skinTemperatureDelta} onClick={() => setRecoveryMetric("skinTemperatureDelta")}><small>Skin temperature</small><b>{selected.skinTemperatureDelta === null ? "Not recorded" : `${selected.skinTemperatureDelta > 0 ? "+" : ""}${number.format(selected.skinTemperatureDelta)}°`}</b></button></div></div>{isSingleDay ? selected.heartRate.length > 0 && <div className="overnight-chart"><ResponsiveContainer><AreaChart data={selected.heartRate}><defs><linearGradient id="sleepHeart" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="var(--chart-coral)" stopOpacity=".22" /><stop offset="1" stopColor="var(--chart-coral)" stopOpacity="0" /></linearGradient></defs><CartesianGrid vertical={false} strokeDasharray="2 7" /><XAxis dataKey="timestamp" axisLine={false} tickLine={false} tickMargin={12} tickFormatter={(value) => archiveTime.format(value + (selected.localStart - selected.start))} /><YAxis axisLine={false} tickLine={false} domain={["dataMin - 5", "dataMax + 5"]} /><Tooltip content={<ChartTip suffix=" bpm" />} /><Area dataKey="value" name="Heart rate" type="monotone" stroke="var(--chart-coral)" strokeWidth={3} fill="url(#sleepHeart)" dot={false} activeDot={{ r: 6, stroke: "var(--surface)", strokeWidth: 4 }} /></AreaChart></ResponsiveContainer></div> : hasRecoveryData ? <div className="overnight-chart recovery-trend"><div className="recovery-chart-head"><strong>{recoveryConfig.label} by night</strong><span>Selected: {archiveDate.format(selected.localEnd)}</span></div><ResponsiveContainer><LineChart data={recoveryData} margin={{ top: 16, right: 12, bottom: 0, left: 0 }}><CartesianGrid vertical={false} /><XAxis dataKey="timestamp" type="number" domain={["dataMin", "dataMax"]} axisLine={false} tickLine={false} tickMargin={12} tickFormatter={(value) => archiveDate.format(value)} /><YAxis domain={["auto", "auto"]} axisLine={false} tickLine={false} width={42} /><Tooltip cursor={{ stroke: "var(--line-strong)" }} content={<ChartTip suffix={recoveryConfig.suffix} labelFormatter={(value) => archiveDate.format(Number(value))} />} /><ReferenceLine x={selected.localEnd} stroke={recoveryConfig.color} strokeDasharray="3 5" /><Line dataKey="value" name={recoveryConfig.label} type="monotone" connectNulls={false} stroke={recoveryConfig.color} strokeWidth={3} dot={{ r: 3, fill: "var(--surface)", strokeWidth: 2 }} activeDot={{ r: 6, stroke: "var(--surface)", strokeWidth: 3 }} /></LineChart></ResponsiveContainer></div> : <Empty icon={Activity} title={`No nightly ${recoveryConfig.label.toLowerCase()} data`} message="This archive did not record this recovery signal during the nights in the selected period." />}</section>
   </div>;
 }

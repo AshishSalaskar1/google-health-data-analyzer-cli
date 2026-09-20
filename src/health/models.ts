@@ -69,6 +69,20 @@ export interface SleepStageTotal {
   percentage: number;
 }
 
+export interface SleepDetailedMetrics {
+  hasStageData: boolean;
+  sleepLatencyMinutes: number | null;
+  wakeAfterSleepOnsetMinutes: number | null;
+  longestAwakeStretchMinutes: number | null;
+  fragmentationPerHour: number | null;
+  remMinutes: number | null;
+  remPercentOfSleep: number | null;
+  deepMinutes: number | null;
+  deepPercentOfSleep: number | null;
+  lightMinutes: number | null;
+  lightPercentOfSleep: number | null;
+}
+
 export interface SleepSession extends HeartRateSummary {
   id: number;
   start: number;
@@ -85,6 +99,7 @@ export interface SleepSession extends HeartRateSummary {
   source: string;
   stages: SleepStage[];
   stageTotals: SleepStageTotal[];
+  detailed: SleepDetailedMetrics;
   heartRate: DataPoint[];
   hrv: number | null;
   restingHeartRate: number | null;
@@ -107,6 +122,8 @@ export interface Summary {
   averageSleepMinutes: number | null;
   averageAsleepMinutes: number | null;
   averageSleepEfficiency: number | null;
+  sleepBedtimeConsistencyMinutes: number | null;
+  sleepWakeConsistencyMinutes: number | null;
 }
 
 export interface HealthReport {
